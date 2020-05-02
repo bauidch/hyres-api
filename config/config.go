@@ -2,19 +2,37 @@ package config
 
 import (
 	"log"
+	"os"
 
-	"github.com/BurntSushi/toml"
+
 )
 
-// Represents database server and credentials
 type Config struct {
-	Server   string
-	Database string
+	Server struct {
+		Host string `yaml:"host"`
+		Port string `yaml:"port"`
+	} `yaml:"server"`
 }
 
-// Read and parse the configuration file
-func (c *Config) Read() {
-	if _, err := toml.DecodeFile("config.toml", &c); err != nil {
+// NewConfig returns a new decoded Config struct
+func NewConfig(configPath string) (*Config, error) {
+	// Create config structure
+	config := &Config{}
+
+	// Open config file
+	file, err := os.Open(configPath)
+	if err != nil {
 		log.Fatal(err)
 	}
+	defer file.Close()
+
+	// Init new YAML decode
+	d := yaml.NewDecoder(file)
+
+	// Start YAML decoding from file
+	if err := d.Decode(&config); err != nil {
+		log.Fatal(err)
+	}
+
+	return config, nil
 }

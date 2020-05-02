@@ -4,7 +4,7 @@ import (
 	"github.com/gorilla/handlers"
 	"log"
 	"net/http"
-	routes "github.com/bauidch/hyres-api/routers"
+	routes "github.com/bauidch/hyrt-api/routers"
 )
 
 // Define HTTP request routes

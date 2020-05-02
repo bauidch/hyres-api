@@ -1,10 +1,11 @@
 package routers
 
 import (
-	"fmt"
+	"encoding/json"
+	. "github.com/bauidch/hyres-api/logger"
+	"github.com/bauidch/hyrt-api/dao"
 	"github.com/gorilla/mux"
 	"net/http"
-	. "github.com/bauidch/hyres-api/logger"
 )
 
 type Route struct {
@@ -33,14 +34,20 @@ func NewRouter() *mux.Router {
 	return router
 }
 
-func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World!")
-}
 var routes = Routes{
-	Route{
-		"Index",
-		"GET",
-		"/v1/",
-		Index,
-	},
+	Route{"Index", "GET", "/v1/", Index },
+	Route{"Series", "GET", "/v1/series", dao.GetAllSeries },
+	Route{"Add Serie", "POST", "/v1/series", dao.CreateSerie },
+	Route{"Get One Serie", "GET", "/v1/series/{id}", dao.GetOneSeries },
+}
+
+func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
+	response, _ := json.Marshal(payload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(response)
+}
+
+func Index(w http.ResponseWriter, r *http.Request) {
+	respondWithJson(w, http.StatusOK, map[string]string{"result": "success"})
 }
