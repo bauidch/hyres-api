@@ -9,6 +9,7 @@ import (
 
 // Define HTTP request routes
 func main() {
+	log.Print("Hyrt-API")
 	router := routes.NewRouter()
 	log.Printf("Server started")
 

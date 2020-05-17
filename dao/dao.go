@@ -2,10 +2,6 @@ package dao
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/gorilla/mux"
-	"net/http"
-	"fmt"
 	"log"
 
 	models "github.com/bauidch/hyrt-api/models"
@@ -17,16 +13,15 @@ import (
 
 // DB connection string
 // for localhost mongoDB
-// const connectionString = "mongodb://localhost:27017"
 const connectionString = "mongodb://localhost:27017"
 
 // Database Name
 const dbName = "hyres"
-// Collection name
-const collName = "series"
 
 // collection object/instance
-var collection *mongo.Collection
+var collSeedJournal *mongo.Collection
+var collectionSeries *mongo.Collection
+var collectionSeed *mongo.Collection
 
 // create connection with mongo db
 func init() {
@@ -48,48 +43,19 @@ func init() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Connected to MongoDB!")
+	log.Println("Connected to MongoDB!")
 
-	collection = client.Database(dbName).Collection(collName)
+	collectionSeries = client.Database(dbName).Collection("series")
+	collectionSeed = client.Database(dbName).Collection("seed")
+	collSeedJournal = client.Database(dbName).Collection("seed_journal")
 
-	fmt.Println("Collection instance created!")
+	log.Println("Collection instance created!")
 }
 
-func GetAllSeries(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	payload := getAllSeries()
-	json.NewEncoder(w).Encode(payload)
-}
-
-func CreateSerie(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	var task models.Series
-	_ = json.NewDecoder(r.Body).Decode(&task)
-	fmt.Println(task, r.Body)
-	insertOneSerie(task)
-	json.NewEncoder(w).Encode(task)
-}
-
-func GetOneSeries(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "PUT")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	params := mux.Vars(r)
-	payload, e := getOneSeries(params["id"])
-	if e != nil {
-		log.Fatal(e)
-	}
-	json.NewEncoder(w).Encode(payload)
-}
+// Series
 // get all task from the DB and return it
-func getAllSeries() []primitive.M {
-	cur, err := collection.Find(context.Background(), bson.D{{}})
+func GetAllSeries() []primitive.M {
+	cur, err := collectionSeries.Find(context.Background(), bson.D{{}})
 	if err != nil {
 		log.Println("Error: getAllSeries", err)
 	}
@@ -116,27 +82,103 @@ func getAllSeries() []primitive.M {
 }
 
 
-func insertOneSerie(serie models.Series) {
-	insertResult, err := collection.InsertOne(context.Background(), serie)
+func InsertOneSerie(serie models.Series) {
+	insertResult, err := collectionSeries.InsertOne(context.Background(), serie)
 
 	if err != nil {
 
 	}
 
-	fmt.Println("Inserted a Single Record ", insertResult.InsertedID)
+	log.Println("Inserted a Single Record ", insertResult.InsertedID)
 }
 
-func getOneSeries(input string) (*models.Series, error){
+func GetOneSeries(input string) (*models.Series, error){
 	id, e := primitive.ObjectIDFromHex(input)
 	if e != nil {
 		log.Fatal(e)
 	}
 
 	var result models.Series
-	err := collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&result)
+	err := collectionSeries.FindOne(context.Background(), bson.M{"_id": id}).Decode(&result)
 	if err != nil {
 		log.Println("Error: getOneSeries", err)
 	}
 
 	return &result, nil
+}
+
+// Seed
+func GetAllSeed() []primitive.M {
+	cur, err := collectionSeed.Find(context.Background(), bson.D{{}})
+	if err != nil {
+		log.Println("Error: getAllSeed", err)
+	}
+
+	var results []primitive.M
+	for cur.Next(context.Background()) {
+		var result bson.M
+		e := cur.Decode(&result)
+		if e != nil {
+			log.Println("Error: getAllSeed", e)
+		}
+		//fmt.Println("cur..>", cur, "result", reflect.TypeOf(result), reflect.TypeOf(result["_id"]))
+		results = append(results, result)
+
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Println("Error: getAllSeed", err)
+	}
+
+	cur.Close(context.Background())
+	return results
+
+}
+
+func InsertOneSeed(serie models.Seed) {
+	insertResult, err := collectionSeed.InsertOne(context.Background(), serie)
+
+	if err != nil {
+		log.Println("Error: InsertOneSeed", err)
+	}
+
+	log.Println("Inserted a Single Record ", insertResult.InsertedID)
+}
+
+// SeedJournal
+func GetAllSeedJournal() []primitive.M {
+	cur, err := collSeedJournal.Find(context.Background(), bson.D{{}})
+	if err != nil {
+		log.Println("Error: getAllSeed", err)
+	}
+
+	var results []primitive.M
+	for cur.Next(context.Background()) {
+		var result bson.M
+		e := cur.Decode(&result)
+		if e != nil {
+			log.Println("Error: GetAllSeedJournal", e)
+		}
+		//fmt.Println("cur..>", cur, "result", reflect.TypeOf(result), reflect.TypeOf(result["_id"]))
+		results = append(results, result)
+
+	}
+
+	if err := cur.Err(); err != nil {
+		log.Println("Error: GetAllSeedJournal", err)
+	}
+
+	cur.Close(context.Background())
+	return results
+
+}
+
+func InsertSeedJournalEntry(serie models.Seed) {
+	insertResult, err := collSeedJournal.InsertOne(context.Background(), serie)
+
+	if err != nil {
+		log.Println("Error: InsertSeedJournalEntry", err)
+	}
+
+	log.Println("Inserted a Single Record ", insertResult.InsertedID)
 }
